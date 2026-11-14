@@ -1,6 +1,6 @@
 # Maintainer: Rizakulov Temur <riakulovtemur0@gmail.com>
 pkgname=cmdflow
-pkgver=3.0.2
+pkgver=3.1.0
 pkgrel=1
 pkgdesc="A minimalist CLI tool written in Rust that parses shell history and renders graphs"
 arch=('x86_64' 'aarch64')

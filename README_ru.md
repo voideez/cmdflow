@@ -1,11 +1,12 @@
 <h1 align="center">cmdflow🌈</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge&logo=github-actions" alt="Build">
+  <img src="https://img.shields.io/github/actions/workflow/status/voideez/cmdflow/rust.yml?branch=project&style=for-the-badge&logo=github-actions&label=build" alt="Build">
   <img src="https://img.shields.io/github/repo-size/voideez/cmdflow?style=for-the-badge&logo=gitlab" alt="Repo Size">
   <img src="https://img.shields.io/github/last-commit/voideez/cmdflow?style=for-the-badge&logo=git" alt="Last Commit">
-  <img src="https://img.shields.io/badge/Language-Rust%201.97.0-white?style=for-the-badge&logo=rust" alt="Language Rust">
-  <img src="https://img.shields.io/badge/Version-3.0.2-blue?style=for-the-badge&logo=github" alt="Version">
+  <img src="https://img.shields.io/badge/Language-Rust-white?style=for-the-badge&logo=rust" alt="Language Rust">
+  <img src="https://img.shields.io/github/v/release/voideez/cmdflow?style=for-the-badge&logo=github&label=Version&color=blue" alt="Version">
+  <img src="https://img.shields.io/aur/version/cmdflow?style=for-the-badge&logo=archlinux&label=AUR&color=1793d1" alt="AUR">
   <img src="https://img.shields.io/badge/OS-Unix--like-orange?style=for-the-badge&logo=linux" alt="OS">
   <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge&logo=opensourcehardware" alt="License">
 </p>
@@ -15,19 +16,20 @@
 
 cmdflow — это CLI утилита для Linux, которая подсчитывает ваши команды Fish/Bash/Zsh, создаёт топ-N команд и выводит его в терминал.
 
-- Автокеширование команд при каждом запуске  
-- Поддержка старых и новых команд  
-- Топ-N с медалями и цветными барами  
+- Считает каждую команду, включая повторы, которые шеллы обычно выбрасывают
+- Помнит историю fish даже после того, как fish удалил из неё дубликаты
+- Топ-N с цветными барами
 - Удобно для анализа вашей командной истории
 
 ---
 
 ###   Функционал
 
-- Считает все введённые команды Fish, Bash и Zsh, включая их повторы  
-- Берёт только первые аргументы команд (например, `cargo build` → `cargo`)  
-- Команды — радужная градиентная аллея  
-- Автоматически обновляет лог при каждом запуске  
+- Считает все введённые команды Fish, Bash и Zsh, включая их повторы
+- Берёт только первые аргументы команд (например, `cargo build` → `cargo`)
+- Видит сквозь обёртки и переменные: `sudo pacman -Syu` и `RUST_LOG=debug cargo run` считаются как `pacman` и `cargo`
+- Находит историю где угодно: `HISTFILE` из rc-файлов, `$ZDOTDIR`, `~/.histfile`, `$XDG_DATA_HOME`
+- Команды — радужная градиентная аллея
 
 **Пример вывода `cmdflow --working 50`:**
 
@@ -36,13 +38,18 @@ cmdflow — это CLI утилита для Linux, которая подсчи�
 ---
 ⚠️ Важное примечание по поводу дубликатов команд
 
-По умолчанию большинство шеллов (особенно Fish и Bash) используют режим ignoredups. Это значит, что если вы введете команду fastfetch 5 раз подряд, в историю запишется только один вызов.
+По умолчанию шеллы записывают не все команды:
 
-Чтобы графики в cmdflow отражали 100% реальную картину вашей активности, запустите встроенный фиксер конфигурации:
+- **Fish** всегда удаляет повторы из файла истории
+- **Bash** и **Zsh** часто работают в режиме `ignoredups`, а zsh без `SAVEHIST` вообще не сохраняет историю на диск
 
-``cmdflow --fix-history``
+Если вы введёте `fastfetch` 5 раз подряд, в истории может остаться только один вызов. Чтобы графики cmdflow отражали реальную картину, один раз запустите встроенный фиксер конфигурации:
 
-Эта команда безопасно допишет необходимые хуки в ваши файлы ~/.bashrc и ~/.config/fish/config.fish, заставив их сохранять абсолютно каждый ввод. Удачи.
+```bash
+cmdflow --fix-history
+```
+
+Он допишет блок `# Added by cmdflow` в `~/.bashrc` и `~/.zshrc` (безлимитная история, без фильтра дубликатов) и добавит в `~/.config/fish/config.fish` маленький хук, который записывает каждую команду в `~/.local/share/cmdflow/`. Команды, начинающиеся с пробела, остаются приватными и не записываются. Запускать повторно безопасно: добавится только то, чего не хватает. Пока это не сделано, cmdflow напоминает об этом подсказкой под графиком.
 
 ---
 
@@ -88,10 +95,8 @@ cmdflow 15       # top 15 (fish + bash + zsh)
 
 ###   Требования
 
-- Cargo  
-- Fish shell  
-- Bash shell
-- Zsh shell
+- Cargo
+- Хотя бы один из шеллов: Fish, Bash, Zsh
 
 ---
 
@@ -104,10 +109,11 @@ git clone https://github.com/voideez/cmdflow.git
 cd cmdflow
 ```
 
-Сборка и запуск в режиме разработки:
+Сборка, тесты и запуск в режиме разработки:
 
 ```bash
 cargo build
+cargo test
 cargo run
 ```
 
@@ -118,3 +124,17 @@ cargo build
 ln -sf "$(pwd)/target/debug/cmdflow" ~/.local/bin/cmdflow
 cmdflow
 ```
+
+---
+
+###   Выпуск релиза
+
+1. Поднимите `version` в `Cargo.toml`
+2. По желанию напишите описание релиза в `.github/releases/vX.Y.Z.md` (первая строка — название релиза)
+3. Закоммитьте, затем создайте и запушьте тег:
+
+```bash
+git tag vX.Y.Z && git push origin project vX.Y.Z
+```
+
+CI проверит, что тег совпадает с `Cargo.toml`, прогонит тесты, опубликует GitHub Release с бинарником и обновит пакет в AUR.
