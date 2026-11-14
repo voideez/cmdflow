@@ -1,0 +1,33 @@
+name: Publish to AUR
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  aur:
+    name: Update AUR package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set pkgver from tag
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          sed -i "s/^pkgver=.*/pkgver=${ver}/; s/^pkgrel=.*/pkgrel=1/" aur/PKGBUILD
+          grep -E '^pkg(ver|rel)=' aur/PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: cmdflow
+          pkgbuild: aur/PKGBUILD
+          assets: aur/cmdflow.install
+          updpkgsums: true
+          commit_username: voide
+          commit_email: voideez@users.noreply.github.com
+          commit_message: "Update to ${{ github.ref_name }}"
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
